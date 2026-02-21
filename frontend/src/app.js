@@ -228,6 +228,8 @@ console.log("Distance:", dist)
         avgSpeed = avgSpeed ? (avgSpeed * 0.7 + speed * 0.3) : speed
       }
       const usedSpeed = (avgSpeed && avgSpeed > 0.2) ? avgSpeed : (speed && speed > 0.2) ? speed : null
+      console.log("Raw speed:", p.coords.speed)
+console.log("Used speed:", usedSpeed)
       const eta = usedSpeed ? dist / usedSpeed : Infinity
       etaEl.textContent = usedSpeed ? fmtTime(eta) : '—'
       speedEl.textContent = `Speed: ${ (usedSpeed*3.6).toFixed(1) } km/h`
