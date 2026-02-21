@@ -30,6 +30,16 @@ function createControls() {
         <label>Destination (place name)</label>
         <input id="destName" placeholder="e.g. Main St & 1st, City" />
       </div>
+
+      <div class="field">
+        <label>Alert Style</label>
+        <select id="alertMode">
+          <option value="normal">Normal</option>
+          <option value="funny">Funny</option>
+          <option value="aggressive">Aggressive</option>
+        </select>
+      </div>
+
       <div class="controls-vert">
         <button id="start">Start Trip</button>
         <button id="stop">Stop</button>
