@@ -58,34 +58,58 @@ function createStatus() {
   `
 }
 
-function notify(message) {
+function notify(message, mode = "normal") {
+
+  let finalMessage = message
+  let frequency = 880
+  let duration = 200
+
+  if (mode === "funny") {
+    finalMessage = "🚀 Wake up sleepy head! " + message
+    frequency = 600
+    duration = 400
+  }
+
+  if (mode === "aggressive") {
+    finalMessage = "🚨 WAKE UP!!! " + message
+    frequency = 1200
+    duration = 800
+  }
+
+  // Notification popup
   try {
     if (window.Notification && Notification.permission === 'granted') {
-      new Notification('SleepyStop', { body: message })
+      new Notification('SleepyStop', { body: finalMessage })
     }
   } catch (e) {}
-  // page title flash
+
+  // Title flash
   const prev = document.title
-  document.title = `${message} — ${prev}`
+  document.title = `${finalMessage} — ${prev}`
   setTimeout(() => (document.title = prev), 3000)
-  // beep
+
+  // Alarm sound
   try {
-    // use a shared AudioContext if available (created on user gesture)
-    const ctx = (window && window.__sleepy_audio_ctx) || null
+    const ctx = window.__sleepy_audio_ctx || null
     if (ctx) {
       const o = ctx.createOscillator()
       const g = ctx.createGain()
+
       o.type = 'sine'
-      o.frequency.value = 880
+      o.frequency.value = frequency
+
       o.connect(g)
       g.connect(ctx.destination)
+
       g.gain.setValueAtTime(0.0001, ctx.currentTime)
-      g.gain.exponentialRampToValueAtTime(0.1, ctx.currentTime + 0.01)
+      g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01)
+
       o.start()
+
       setTimeout(() => {
         g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05)
-        try { o.stop(ctx.currentTime + 0.06) } catch(e){}
-      }, 200)
+        o.stop()
+      }, duration)
     }
   } catch (e) {}
 }
