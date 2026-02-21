@@ -87,7 +87,7 @@ function notify(message, mode = "normal") {
     const ctx = window.__sleepy_audio_ctx || null
     if (!ctx) return
 
-    function playTone(freq, time, length) {
+    function playTone(freq, time, length,volume=0.6) {
       const o = ctx.createOscillator()
       const g = ctx.createGain()
 
@@ -98,26 +98,26 @@ function notify(message, mode = "normal") {
       g.connect(ctx.destination)
 
       g.gain.setValueAtTime(0.0001, ctx.currentTime + time)
-      g.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + time + 0.01)
+      g.gain.exponentialRampToValueAtTime(volume, ctx.currentTime + time + 0.01)
 
       o.start(ctx.currentTime + time)
       o.stop(ctx.currentTime + time + length)
     }
 
     if (mode === "normal") {
-      playTone(700, 0, 0.15)
-      playTone(700, 0.25, 0.15)
+      playTone(700, 0, 0.15,0.6)
+      playTone(700, 0.25, 0.15,0.6)
     }
 
     if (mode === "funny") {
-      playTone(500, 0, 0.15)
-      playTone(700, 0.2, 0.15)
-      playTone(900, 0.4, 0.2)
+      playTone(500, 0, 0.15,0.7)
+      playTone(700, 0.2, 0.15,0.7)
+      playTone(900, 0.4, 0.2,0.7)
     }
 
     if (mode === "aggressive") {
       for (let i = 0; i < 4; i++) {
-        playTone(1200, i * 0.3, 0.2)
+        playTone(1200, i * 0.3, 0.2,1.0)
       }
     }
 
