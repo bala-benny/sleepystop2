@@ -342,9 +342,9 @@ SleepyStop-fullstack/
 
 ## 👨‍💻 Team
 
-**Created by:** Balabenny  
-**Role:** Full-Stack Developer  
-**Contact:** [Your email or social media]
+**Created by:** Bala Benny  
+                Gayathri Santhosh
+
 
 ---
 
@@ -422,13 +422,7 @@ npx vite --port 5174
 
 ---
 
-## 📞 Support
-
-For issues, questions, or suggestions:
-1. Open a GitHub Issue
-2. Submit a Pull Request
-3. Email: [your-email@example.com]
-
----
 
 **Made with ❤️ for tired commuters everywhere.** 🛌✨
+
+
