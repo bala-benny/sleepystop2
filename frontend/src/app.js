@@ -118,6 +118,7 @@ export function initApp() {
   const destName = document.getElementById('destName')
   const startBtn = document.getElementById('start')
   const stopBtn = document.getElementById('stop')
+  const alertModeSelect = document.getElementById('alertMode')
   const distanceEl = document.getElementById('distance')
   const etaEl = document.getElementById('eta')
   const trackLabel = document.getElementById('trackLabel')
