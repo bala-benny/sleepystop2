@@ -207,6 +207,8 @@ if (isNaN(lat) || isNaN(lon)) {
       const now = Date.now()
       const cur = { lat: p.coords.latitude, lon: p.coords.longitude }
       const dist = haversine(cur.lat, cur.lon, lat, lon)
+      console.log("Current:", cur.lat, cur.lon)
+console.log("Distance:", dist)
       distanceEl.textContent = `${(dist / 1000).toFixed(2)} km`
       coordsEl.textContent = `lat: ${cur.lat.toFixed(5)} lon: ${cur.lon.toFixed(5)}`
 
