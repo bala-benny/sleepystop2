@@ -61,19 +61,13 @@ function createStatus() {
 function notify(message, mode = "normal") {
 
   let finalMessage = message
-  let frequency = 880
-  let duration = 200
 
   if (mode === "funny") {
     finalMessage = "🚀 Wake up sleepy head! " + message
-    frequency = 600
-    duration = 400
   }
 
   if (mode === "aggressive") {
     finalMessage = "🚨 WAKE UP!!! " + message
-    frequency = 1200
-    duration = 800
   }
 
   // Notification popup
@@ -88,32 +82,47 @@ function notify(message, mode = "normal") {
   document.title = `${finalMessage} — ${prev}`
   setTimeout(() => (document.title = prev), 3000)
 
-  // Alarm sound
+  // 🎧 ADVANCED ALARM SOUND
   try {
     const ctx = window.__sleepy_audio_ctx || null
-    if (ctx) {
+    if (!ctx) return
+
+    function playTone(freq, time, length) {
       const o = ctx.createOscillator()
       const g = ctx.createGain()
 
       o.type = 'sine'
-      o.frequency.value = frequency
+      o.frequency.value = freq
 
       o.connect(g)
       g.connect(ctx.destination)
 
-      g.gain.setValueAtTime(0.0001, ctx.currentTime)
-      g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01)
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + time)
+      g.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + time + 0.01)
 
-      o.start()
-
-      setTimeout(() => {
-        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05)
-        o.stop()
-      }, duration)
+      o.start(ctx.currentTime + time)
+      o.stop(ctx.currentTime + time + length)
     }
+
+    if (mode === "normal") {
+      playTone(700, 0, 0.15)
+      playTone(700, 0.25, 0.15)
+    }
+
+    if (mode === "funny") {
+      playTone(500, 0, 0.15)
+      playTone(700, 0.2, 0.15)
+      playTone(900, 0.4, 0.2)
+    }
+
+    if (mode === "aggressive") {
+      for (let i = 0; i < 4; i++) {
+        playTone(1200, i * 0.3, 0.2)
+      }
+    }
+
   } catch (e) {}
 }
-
 export function initApp() {
   const root = document.getElementById('app')
   root.innerHTML = `
