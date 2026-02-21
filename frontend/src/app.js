@@ -203,75 +203,147 @@ if (isNaN(lat) || isNaN(lon)) {
     log.textContent = `Tracking towards: ${place}`
 
     function onPos(p) {
-        console.log("Destination:", lat, lon)
-      const now = Date.now()
-      const cur = { lat: p.coords.latitude, lon: p.coords.longitude }
-      const dist = haversine(cur.lat, cur.lon, lat, lon)
-      console.log("Current:", cur.lat, cur.lon)
-console.log("Distance:", dist)
-      distanceEl.textContent = `${(dist / 1000).toFixed(2)} km`
-      coordsEl.textContent = `lat: ${cur.lat.toFixed(5)} lon: ${cur.lon.toFixed(5)}`
 
-      // estimate speed: use reported speed or derive from delta
-      let speed = (typeof p.coords.speed === 'number' && isFinite(p.coords.speed)) ? p.coords.speed : null
-      // derive speed from delta only when movement exceeds accuracy and time is reasonable
-      if ((speed === null || isNaN(speed)) && lastPos && lastTime) {
-        const d = haversine(lastPos.lat, lastPos.lon, cur.lat, cur.lon)
-        const dt = (now - lastTime) / 1000
-        const accuracy = (p.coords.accuracy && isFinite(p.coords.accuracy)) ? p.coords.accuracy : 0
-        if (dt >= 0.8 && d > Math.max(3, accuracy)) { // require >=0.8s and >3m (or accuracy)
-          speed = d / dt
-        }
-      }
-      // sanity-check and update running average only for reasonable speeds
-      if (speed !== null && isFinite(speed) && speed > 0.2 && speed < 100) {
-        avgSpeed = avgSpeed ? (avgSpeed * 0.7 + speed * 0.3) : speed
-      }
-      const usedSpeed = (avgSpeed && avgSpeed > 0.2) ? avgSpeed : (speed && speed > 0.2) ? speed : null
-      console.log("Raw speed:", p.coords.speed)
-console.log("Used speed:", usedSpeed)
-      const eta = usedSpeed ? dist / usedSpeed : Infinity
-      etaEl.textContent = usedSpeed ? fmtTime(eta) : '—'
-      speedEl.textContent = `Speed: ${ (usedSpeed*3.6).toFixed(1) } km/h`
+  console.log("Destination:", lat, lon)
 
-      // set initial distance for progress
-      if (initialDistance === null) initialDistance = dist
-      if (initialDistance && initialDistance > 10) {
-        const progress = Math.max(0, Math.min(1, (initialDistance - dist) / initialDistance))
-        progressEl.style.width = `${(progress*100).toFixed(1)}%`
-      }
+  const now = Date.now()
+  const cur = {
+    lat: p.coords.latitude,
+    lon: p.coords.longitude
+  }
 
-      trackLabel.textContent = 'Tracking'
+  const dist = haversine(cur.lat, cur.lon, lat, lon)
 
-      // check thresholds
-      for (const t of thresholds) {
-        if (!fired[t] && eta <= t) {
-          fired[t] = true
-          const minutes = t >= 60 ? `${t/60}m` : `${t}s`
-          const msg = `Arriving in ${minutes}`
-          notify(msg)
-          showToast(msg)
-          // short vibration for mobile if available
-          try { if (navigator.vibrate) navigator.vibrate(200) } catch(e){}
-          const entry = document.createElement('div')
-          entry.className = 'log-entry'
-          entry.textContent = `${new Date().toLocaleTimeString()} — ${msg}`
-          log.prepend(entry)
-          updateAlertsList()
-        }
-      }
+  console.log("Current:", cur.lat, cur.lon)
+  console.log("Distance:", dist)
 
-      if (dist <= 25) {
-        notify('You have arrived')
-        showToast('You have arrived')
-        try { if (navigator.vibrate) navigator.vibrate([200,100,200]) } catch(e){}
-        log.prepend(Object.assign(document.createElement('div'), { className: 'log-entry', textContent: `${new Date().toLocaleTimeString()} — Arrived` }))
-        resetState()
-      }
+  distanceEl.textContent = `${(dist / 1000).toFixed(2)} km`
+  coordsEl.textContent = `lat: ${cur.lat.toFixed(5)} lon: ${cur.lon.toFixed(5)}`
 
-      lastPos = cur
-      lastTime = now
+  // --------------------------------------------------
+  // SPEED CALCULATION (Robust Version)
+  // --------------------------------------------------
+
+  let speed = (typeof p.coords.speed === 'number' && isFinite(p.coords.speed))
+    ? p.coords.speed
+    : null
+
+  // If browser doesn't provide speed, calculate manually
+  if ((speed === null || isNaN(speed)) && lastPos && lastTime) {
+
+    const d = haversine(lastPos.lat, lastPos.lon, cur.lat, cur.lon)
+    const dt = (now - lastTime) / 1000 // seconds
+
+    console.log("Delta distance:", d)
+    console.log("Delta time:", dt)
+
+    // Allow small movements (less strict than before)
+    if (dt >= 1 && d > 1) {
+      speed = d / dt // meters per second
     }
+  }
+
+  // Smooth speed (running average)
+  if (speed !== null && isFinite(speed) && speed > 0.2 && speed < 50) {
+    avgSpeed = avgSpeed
+      ? (avgSpeed * 0.7 + speed * 0.3)
+      : speed
+  }
+
+  const usedSpeed =
+    (avgSpeed && avgSpeed > 0.2)
+      ? avgSpeed
+      : (speed && speed > 0.2)
+        ? speed
+        : null
+
+  console.log("Raw speed:", p.coords.speed)
+  console.log("Used speed:", usedSpeed)
+
+  // --------------------------------------------------
+  // ETA
+  // --------------------------------------------------
+
+  const eta = usedSpeed ? dist / usedSpeed : Infinity
+
+  etaEl.textContent = usedSpeed ? fmtTime(eta) : '—'
+
+  speedEl.textContent = usedSpeed
+    ? `Speed: ${(usedSpeed * 3.6).toFixed(1)} km/h`
+    : `Speed: —`
+
+  // --------------------------------------------------
+  // PROGRESS BAR
+  // --------------------------------------------------
+
+  if (initialDistance === null) initialDistance = dist
+
+  if (initialDistance && initialDistance > 10) {
+    const progress = Math.max(
+      0,
+      Math.min(1, (initialDistance - dist) / initialDistance)
+    )
+    progressEl.style.width = `${(progress * 100).toFixed(1)}%`
+  }
+
+  trackLabel.textContent = 'Tracking'
+
+  // --------------------------------------------------
+  // ALERT THRESHOLDS
+  // --------------------------------------------------
+
+  for (const t of thresholds) {
+    if (!fired[t] && eta <= t) {
+
+      fired[t] = true
+
+      const minutes = t >= 60 ? `${t / 60}m` : `${t}s`
+      const msg = `Arriving in ${minutes}`
+
+      notify(msg)
+      showToast(msg)
+
+      try {
+        if (navigator.vibrate) navigator.vibrate(200)
+      } catch (e) {}
+
+      const entry = document.createElement('div')
+      entry.className = 'log-entry'
+      entry.textContent = `${new Date().toLocaleTimeString()} — ${msg}`
+      log.prepend(entry)
+
+      updateAlertsList()
+    }
+  }
+
+  // --------------------------------------------------
+  // ARRIVAL CHECK
+  // --------------------------------------------------
+
+  if (dist <= 25) {
+
+    notify('You have arrived')
+    showToast('You have arrived')
+
+    try {
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200])
+    } catch (e) {}
+
+    const entry = document.createElement('div')
+    entry.className = 'log-entry'
+    entry.textContent = `${new Date().toLocaleTimeString()} — Arrived`
+    log.prepend(entry)
+
+    resetState()
+  }
+
+  // --------------------------------------------------
+  // STORE LAST POSITION
+  // --------------------------------------------------
+
+  lastPos = cur
+  lastTime = now
+}
 
     if (!navigator.geolocation) return alert('Geolocation not supported')
     function positionError(err) {
