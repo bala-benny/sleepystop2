@@ -203,6 +203,7 @@ if (isNaN(lat) || isNaN(lon)) {
     log.textContent = `Tracking towards: ${place}`
 
     function onPos(p) {
+        console.log("Destination:", lat, lon)
       const now = Date.now()
       const cur = { lat: p.coords.latitude, lon: p.coords.longitude }
       const dist = haversine(cur.lat, cur.lon, lat, lon)
