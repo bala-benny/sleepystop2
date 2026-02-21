@@ -31,6 +31,9 @@ body{background:transparent;color:#1e1b26}
 .controls .personality{padding:8px;border-radius:8px;border:1px solid rgba(30,27,38,0.06);background:#fff}
 .foot{padding:12px 20px;color:#6b5b7a;font-size:0.9rem;border-top:1px solid rgba(30,27,38,0.03);text-align:center}
 
+.toast{position:relative;margin-bottom:10px}
+.toast-entry{background:linear-gradient(90deg,#fff7f3,#fffaf0);padding:10px 14px;border-radius:12px;color:#3b1f1b;box-shadow:0 8px 18px rgba(58,20,63,0.06);transition:opacity 300ms ease}
+
 @media (max-width:880px){
   .main{flex-direction:column}
   .controls{width:100%;flex:unset}

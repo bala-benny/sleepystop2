@@ -60,20 +60,23 @@ function notify(message) {
   setTimeout(() => (document.title = prev), 3000)
   // beep
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
-    const o = ctx.createOscillator()
-    const g = ctx.createGain()
-    o.type = 'sine'
-    o.frequency.value = 880
-    o.connect(g)
-    g.connect(ctx.destination)
-    g.gain.setValueAtTime(0.0001, ctx.currentTime)
-    g.gain.exponentialRampToValueAtTime(0.1, ctx.currentTime + 0.01)
-    o.start()
-    setTimeout(() => {
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05)
-      o.stop(ctx.currentTime + 0.06)
-    }, 200)
+    // use a shared AudioContext if available (created on user gesture)
+    const ctx = (window && window.__sleepy_audio_ctx) || null
+    if (ctx) {
+      const o = ctx.createOscillator()
+      const g = ctx.createGain()
+      o.type = 'sine'
+      o.frequency.value = 880
+      o.connect(g)
+      g.connect(ctx.destination)
+      g.gain.setValueAtTime(0.0001, ctx.currentTime)
+      g.gain.exponentialRampToValueAtTime(0.1, ctx.currentTime + 0.01)
+      o.start()
+      setTimeout(() => {
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05)
+        try { o.stop(ctx.currentTime + 0.06) } catch(e){}
+      }, 200)
+    }
   } catch (e) {}
 }
 
@@ -85,6 +88,7 @@ export function initApp() {
       <main class="main">
         ${createControls()}
         <section class="results">
+          <div id="toast" aria-live="polite"></div>
           <div class="info-card">
             ${createStatus()}
             <div class="tracking-row">
@@ -112,12 +116,14 @@ export function initApp() {
   const progressEl = document.getElementById('progress')
   const log = document.getElementById('log')
   const alertsFired = document.getElementById('alertsFired')
+  const toast = document.getElementById('toast')
 
   let watchId = null
   let lastPos = null
   let lastTime = null
   let avgSpeed = null // m/s
   let initialDistance = null
+  let audioCtx = null
   const defaultspeed = 8 // m/s ~ 28.8 km/h
   const thresholds = [300, 180, 30]
   const fired = { 300: false, 180: false, 30: false }
@@ -140,6 +146,18 @@ export function initApp() {
     progressEl.style.width = '0%'
   }
 
+  function showToast(message, timeout = 5000) {
+    if (!toast) return
+    const el = document.createElement('div')
+    el.className = 'toast-entry'
+    el.textContent = message
+    toast.appendChild(el)
+    setTimeout(() => {
+      el.style.opacity = '0'
+      setTimeout(() => el.remove(), 300)
+    }, timeout)
+  }
+
   function updateAlertsList() {
     const done = thresholds.filter(t => fired[t]).map(t => (t / 60) + 'm').join(', ')
     alertsFired.textContent = done ? `Alerts: ${done}` : 'Alerts: none'
@@ -159,14 +177,26 @@ export function initApp() {
       }
       const data = await r.json()
       lat = parseFloat(data.lat)
-      lon = parseFloat(data.lon)
-      if (!lat || !lon) return alert('Geocoding returned invalid coordinates')
+lon = parseFloat(data.lon)
+
+if (isNaN(lat) || isNaN(lon)) {
+  return alert('Geocoding returned invalid coordinates')
+}
     } catch (e) {
       return alert('Failed to geocode destination: ' + e.message)
     }
-    // request notification permission
+    // request notification permission and prepare audio (must be done on user gesture)
     if (window.Notification && Notification.permission !== 'granted') {
-      try { await Notification.requestPermission() } catch (e) {}
+      try { await Notification.requestPermission() } catch (e) { console.warn('Notification permission request failed', e) }
+    }
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)()
+      if (audioCtx.state === 'suspended') await audioCtx.resume()
+      // expose for notify
+      window.__sleepy_audio_ctx = audioCtx
+    } catch (e) {
+      console.warn('AudioContext unavailable', e)
+      audioCtx = null
     }
 
     resetState()
@@ -215,6 +245,7 @@ export function initApp() {
           const minutes = t >= 60 ? `${t/60}m` : `${t}s`
           const msg = `Arriving in ${minutes}`
           notify(msg)
+          showToast(msg)
           // short vibration for mobile if available
           try { if (navigator.vibrate) navigator.vibrate(200) } catch(e){}
           const entry = document.createElement('div')
@@ -227,6 +258,7 @@ export function initApp() {
 
       if (dist <= 25) {
         notify('You have arrived')
+        showToast('You have arrived')
         try { if (navigator.vibrate) navigator.vibrate([200,100,200]) } catch(e){}
         log.prepend(Object.assign(document.createElement('div'), { className: 'log-entry', textContent: `${new Date().toLocaleTimeString()} — Arrived` }))
         resetState()
@@ -237,9 +269,19 @@ export function initApp() {
     }
 
     if (!navigator.geolocation) return alert('Geolocation not supported')
-    watchId = navigator.geolocation.watchPosition(onPos, e => {
-      console.error(e)
-    }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 })
+    function positionError(err) {
+      console.warn('Geolocation error', err)
+      // Show a friendly message
+      const msg = err && err.code === 1 ? 'Permission denied' : 'Location unavailable'
+      showToast(msg)
+      // Try a single fallback with lower accuracy and longer timeout
+      navigator.geolocation.getCurrentPosition(onPos, e => {
+        console.error('Fallback getCurrentPosition failed', e)
+        showToast('Unable to determine location. Check browser/OS settings.')
+      }, { enableHighAccuracy: false, timeout: 20000 })
+    }
+
+    watchId = navigator.geolocation.watchPosition(onPos, positionError, { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 })
   })
 
   stopBtn.addEventListener('click', () => {
