@@ -335,7 +335,7 @@ if (isNaN(lat) || isNaN(lon)) {
       const minutes = t >= 60 ? `${t / 60}m` : `${t}s`
       const msg = `Arriving in ${minutes}`
 
-      notify(msg)
+      notify(msg, alertModeSelect.value)
       showToast(msg)
 
       try {
@@ -357,7 +357,7 @@ if (isNaN(lat) || isNaN(lon)) {
 
   if (dist <= 25) {
 
-    notify('You have arrived')
+    notify('You have arrived', alertModeSelect.value)
     showToast('You have arrived')
 
     try {
@@ -402,3 +402,4 @@ if (isNaN(lat) || isNaN(lon)) {
 
   resetState()
 }
+window.notify = notify
