@@ -284,28 +284,14 @@ const { lat, lon } = data; // Use for tracking
 
 *Add screenshots here (3+ required):*
 
-### Screenshot 1: Trip Setup Screen
-```
-[Placeholder for screenshot of the input screen]
-```
-
-### Screenshot 2: Active Tracking
-```
-[Placeholder for screenshot showing live tracking with distance, ETA, speed, and progress bar]
-```
-
-### Screenshot 3: Alert Notification
-```
-[Placeholder for screenshot of toast notification when alert triggers]
-```
-
+[
+](https://drive.google.com/drive/folders/1mU7hCVjDZtrMh4MXW6X1XmB2iIh5IiZB?usp=drive_link)
 ---
 
 ## 🎬 Demo Video
 
-**Demo Link:** [Paste your demo video URL here]  
-*Example: YouTube link, Loom link, or local video path*
-
+**Demo Link:** [
+](https://drive.google.com/drive/folders/1hgmqVlUAfeMkknZfEX-Ko-7DdkMtk_yA?usp=drive_link)
 ---
 
 ## 📁 Project Structure
